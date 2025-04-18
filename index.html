@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Controle de Itens</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+
+  <style>
+    body {
+      font-family: sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f4f4f4;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      padding: 1rem;
+      background: #fff;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+      border-radius: 8px;
+    }
+    .item {
+      text-align: center;
+    }
+    .item h2 {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+    }
+    .counter {
+      font-size: 2rem;
+      margin: 0.5rem 0;
+    }
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+    .controls button {
+      padding: 0.5rem 1rem;
+      font-size: 1rem;
+    }
+    .nav {
+      display: flex;
+      justify-content: space-between;
+    }
+    .nav button {
+      padding: 0.5rem 1rem;
+    }
+    .view-list {
+      text-align: center;
+      margin-top: 1rem;
+    }
+    .view-list button {
+      padding: 0.5rem 1rem;
+    }
+    .modal {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-color: rgba(0,0,0,0.6);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    .modal-content {
+      background: white;
+      padding: 1rem;
+      max-height: 80%;
+      width: 90%;
+      max-width: 600px;
+      overflow-y: auto;
+      border-radius: 8px;
+    }
+    .modal-content h3 {
+      margin-top: 0;
+    }
+    .modal-content ul {
+      list-style: none;
+      padding: 0;
+    }
+    .modal-content li {
+      padding: 4px 0;
+      border-bottom: 1px solid #ddd;
+    }
+    .close-btn {
+      margin-top: 1rem;
+      display: block;
+      padding: 0.5rem 1rem;
+      background: #eee;
+      border: none;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="item">
+      <h2 id="item-name"></h2>
+      <div class="counter" id="item-qty">0</div>
+      <div class="controls">
+        <button onclick="updateQty(-1)">-</button>
+        <button onclick="updateQty(1)">+</button>
+      </div>
+      <div class="nav">
+        <button onclick="prevItem()">⬅ Anterior</button>
+        <button onclick="nextItem()">Próximo ➡</button>
+      </div>
+      <div class="view-list">
+        <button onclick="openModal()">📋 Ver Lista</button>
+        <button onclick="exportToExcel()">📤 Exportar para Excel</button>
+      </div>
+      
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="listModal">
+    <div class="modal-content">
+      <h3>Lista de Itens com Quantidades</h3>
+      <ul id="list-content"></ul>
+      <button class="close-btn" onclick="closeModal()">Fechar</button>
+    </div>
+  </div>
+
+  <script>
+    const items = [/* mesma lista de itens do código anterior */ 
+      "kit de 5 Sabonetes Natura Tododia Acerola E Hibisco 5 Unidades De 90g",
+      "kit de 5 Sabonetes em Barra Tododia Todanoite Chá de camomila e lavanda",
+      "kit de 5 Sabonetes em Barra Puro Vegetal Tododia Amora Vermelha e Jabuticaba",
+      "kit de 5 Sabonetes em Barra Puro Vegetal Tododia Alecrim e Sálvia",
+      "kit de 5 Sabonetes em Barra Puro Vegetal Tododia Manga Rosa e Água de Coco",
+      "kit de 5 Sabonetes em Barra Puro Vegetal Tododia Limão Siciliano e Flor de Gardênia",
+      "Creme Depilatório para o Rosto Skin So Soft",
+      "Avon Care Loção Desodorante Corporal Macadâmia",
+      "Creme Depilatório Área do Biquíni Skin So Soft Soft & Smooth 75g",
+      "Creme Desodorante de Hidratação Profunda para os Pés Extrassecos Footworks com Manteiga de Karité",
+      "Creme Depilatório Para o Corpo Skin So Soft com Complexo Hidratante 125g",
+      "Zaad Eau de Parfum 95ml",
+      "Arbo Puro Desodorante Colônia 100ml",
+      "kit de 5 Sabonetes Mamãe e Bebê",
+      "Essencial Deo Parfum Masculino",
+      "Quasar classic Desodorante Colônia 100ml",
+      "Quasar Rush Desodorante Colônia 100ml",
+      "Desodorante Antitranspirante Roll-on Kaiak Aventura Feminino",
+      "Desodorante Antitranspirante Roll-On Natura Homem Tato",
+      "Desodorante Antitranspirante em Creme Tododia Leite de Algodão",
+      "Desodorante Aerossol Boticollection Portinari 75g/125ml",
+      "Desodorante Antitranspirante Malbec Aerossol 75g/125ml",
+      "Sabonete Líquido Esfoliante Corporal Tododia Capim Limão e Hortelã",
+      "Loção Renovadora Desodorante Hidratante Corporal Nativa Spa Lilac 180ml",
+      "Refil Loção Desodorante Hidratante Corporal Nativa Spa Ameixa Negra 400ml",
+      "Refil Creme Desodorante Nutritivo para o Corpo Tododia Algodão",
+      "Refil Sabonete Líquido Cremoso Corporal Banho nas Nuvens cha de camomila e lavanda Tododia Todanoite",
+      "Refil Loção Radiante Desodorante Corporal Nativa Spa Ameixa Dourada 350ml",
+      "Loção Desodorante Hidratante Cuide-se Bem Bob Esponja 400ml",
+      "Lyra Desodorante Colônia 75ml",
+      "Eudora Velvet Confident Desodorante Colônia 100ml",
+      "Egeo Dolce Eau de Toilette, 90ml",
+      "Niina Secrets Bloom Desodorante Colônia 100ml",
+      "Velvet Inspire Desodorante Colônia 100ml",
+      "Kiss Me Nude Caramelo Desodorante Colônia 50ml",
+      "Loção Desodorante Hidratante Cuide-se Bem Feira Framboesa 400ml",
+      "Creme Acetinado Hidratante Desodorante Corporal Lily Gardénia 250g",
+      "Lily Gardénia Eau de Parfum 75ml",
+      "Creme Acetinado Hidratante Desodorante Corporal Lily 250g",
+      "Desodorante Antitranspirante Roll-on Tododia Algodão",
+      "Desodorante Roll-On Infantil Memórias Sophie Quasar Next Divertida Mente 2 55ml",
+      "DESODORANTE ROLL ON MUSK MARINE 50ml",
+      "DESODORANTE ROLL ON ON DUTY CARE CLAREADOR 50ml",
+      "Body Splash Tododia Chá de Camomila e Lavanda Feminino",
+      "Celebre Sua Força Desodorante Colônia Feminino 100ml",
+      "Body Splash Cuide-Se Bem Deleite 200ml",
+      "Loção Firmadora Desodorante Corporal Nativa Spa Quinoa 400ml OBoticário",
+      "Loção Nutritiva Desodorante Corporal Nativa Spa Ameixa 400ml OBoticário",
+      "Loção Renovadora Desodorante Corporal Nativa Spa Lilac 400ml OBoticário",
+      "Loção Aveludada Desodorante Corporal Nativa Spa Cereja Rouge 400ml OBoticário"
+    ];
+
+    let current = 0;
+    let quantities = JSON.parse(localStorage.getItem("quantities") || "[]");
+    if (quantities.length !== items.length) {
+      quantities = Array(items.length).fill(0);
+    }
+
+    const itemName = document.getElementById("item-name");
+    const itemQty = document.getElementById("item-qty");
+    const listContent = document.getElementById("list-content");
+    const listModal = document.getElementById("listModal");
+
+    function updateUI() {
+      itemName.textContent = items[current];
+      itemQty.textContent = quantities[current];
+    }
+
+    function updateQty(change) {
+      quantities[current] = Math.max(0, quantities[current] + change);
+      localStorage.setItem("quantities", JSON.stringify(quantities));
+      updateUI();
+    }
+
+    function nextItem() {
+      current = (current + 1) % items.length;
+      updateUI();
+    }
+
+    function prevItem() {
+      current = (current - 1 + items.length) % items.length;
+      updateUI();
+    }
+
+    function openModal() {
+      listContent.innerHTML = "";
+      items.forEach((item, index) => {
+        const li = document.createElement("li");
+        li.textContent = `${item} - Quantidade: ${quantities[index]}`;
+        listContent.appendChild(li);
+      });
+      listModal.style.display = "flex";
+    }
+
+    function closeModal() {
+      listModal.style.display = "none";
+    }
+
+    // Inicializa
+    updateUI();
+
+
+    function exportToExcel() {
+  const data = items.map((item, index) => ({
+    Item: item,
+    Quantidade: quantities[index]
+  }));
+
+  const worksheet = XLSX.utils.json_to_sheet(data);
+  const workbook = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(workbook, worksheet, "Itens");
+
+  XLSX.writeFile(workbook, "lista_de_itens.xlsx");
+}
+
+  </script>
+</body>
+</html>
