@@ -93,6 +93,9 @@
       border: none;
       cursor: pointer;
     }
+    li{
+      display: flex;
+    }
   </style>
 </head>
 <body>
@@ -215,7 +218,7 @@
       listContent.innerHTML = "";
       items.forEach((item, index) => {
         const li = document.createElement("li");
-        li.textContent = `${item} - Quantidade: ${quantities[index]}`;
+        li.textContent = `${item} <span> ${quantities[index]}</span>`;
         listContent.appendChild(li);
       });
       listModal.style.display = "flex";
